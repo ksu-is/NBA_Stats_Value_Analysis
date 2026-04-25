@@ -11,6 +11,8 @@
     -[x] Insert Field Goals Missed, Free Throws Missed
     -[x] Insert Credits Formula and Approximate Value Formula
     -[x] Add Approximate Value (AV) to the DataFrame
+    -[x] Add Option for Individual Seasons or whole Career
+    -[] Add Player Salaries
 - [] Make regular updates and commits to code
 - [] Frequently update README.md and projectroadmap.md
 ## Sprint 3
