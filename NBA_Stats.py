@@ -1,4 +1,5 @@
 import time
+import pandas as pd
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import playercareerstats
 from tabulate import tabulate
@@ -89,40 +90,45 @@ def player_stats():
         career_df['AV'] = AV
 
         # Salary Scraping from Hoopshype
-        career_df['Salary'] = 'N/A'  # Initialize Salary column with 'N/A'
+        career_df['SL'] = 'N/A'  # Initialize Salary column with 'N/A'
         for season in career_df['SEASON_ID'].unique():
+
+            # Create the URL for the relevant season
+            season_format = season.split('-')[0]  
+            url = f"https://www.hoopshype.com/salaries/players/?season={season_format}"
+            print(url)
+            print(f"Fetching salary data for season {season}...")
+                
             try:
-                # Create the URL for the relevant season
-                season_format = season.split('-')[0]  
-                url = "https://www.hoopshype.com/salaries/players/?season={season.format}}"
-                # Make a request to the webpage
-                response = requests.get(url, timeout = 2.5)
-                response_html = response.text
-                # Parse the HTML content using BeautifulSoup
-                soup = BeautifulSoup(response_html, 'html.parser')
-                # Find the table containing player salaries
-                salary_table = soup.find('table')
-                if not salary_table:
-                    continue
-                # Loop through the rows of the salary table to find the player's salary 
-                for row in salary_table.find_all('tr')[1:]:  # Skip the header row
-                    length = len(row.find_all('td'))
-                    if length < 3:
-                        continue
-                    player_name = row.find_all('td')[1].text.strip()
-                    player_salary = row.find_all('td')[2].text.strip()
-                    try:
-                        salary = float(player_salary)
-                    except ValueError:
-                        salary = 'N/A'
-                    
-                    # Checking if the player name matches the full name of the player we are looking for
-                    normalized_player_name = full_name.lower().replace(' ', ' ')
-                    if player_name == normalized_player_name:
-                        career_df.loc[career_df['SEASON_ID'] == season, 'Salary'] = player_salary
-                        break  # Exit the loop once the salary is found for this season
-                time.sleep(1)  # Sleep to avoid overwhelming the server with requests
-            except requests.exceptions.RequestException as e:
+                # Use pandas to read the HTML table directly
+                tables = pd.read_html(url)
+                salary_df = tables[0]
+                
+                # Rename columns to match table structure
+                salary_df.columns = ['Rank', 'Player', 'Team', 'Salary', 'COL5', 'COL6']
+                
+                # Keep only Player and Salary columns
+                salary_df = salary_df[['Player', 'Salary']].copy()
+                
+                # Clean the salary data: remove $, commas, and convert to int
+                salary_df['Salary'] = salary_df['Salary'].replace(r'[\$,]', '', regex=True).astype(float).astype(int)
+                
+                # Search for the player in this season's salary data
+                salary_found = False
+                for idx, row in salary_df.iterrows():
+                    if row['Player'].lower() == full_name.lower():
+                        salary = row['Salary']
+                        print(f"✓ Salary found for {full_name} in season {season}: ${salary:,}")
+                        career_df.loc[career_df['SEASON_ID'] == season, 'SL'] = salary
+                        salary_found = True
+                        break
+                
+                if not salary_found:
+                    print(f"✗ No salary match found for {full_name} in season {season}.")
+                
+                time.sleep(1)  # Be respectful to the server
+                
+            except Exception as e:
                 print(f"Error fetching salary data for season {season}: {e}")
                 continue
 
@@ -143,7 +149,7 @@ def player_stats():
                 career_df.loc[(career_df['SEASON_ID'] == season) & (career_df['TEAM_ABBREVIATION'] == 'TOT'), 'Team'] = '/'.join(teams_played)
 
         # Filter the DataFrame to include only the relevant columns
-        season_stats = career_df[['SEASON_ID','Team' ,'GP','MPG','PPG', 'APG', 'RPG', 'SPG', 'BPG', 'TOV','FG%','FT%','3P%','TS%', 'AV']].copy()
+        season_stats = career_df[['SEASON_ID','Team' ,'GP','MPG','PPG', 'APG', 'RPG', 'SPG', 'BPG', 'TOV','FG%','FT%','3P%','TS%', 'AV', 'SL']].copy()
        
         # Rename SEASON_ID column for clarity
         season_stats.rename(columns={'SEASON_ID': 'Season'}, inplace=True)
@@ -176,7 +182,7 @@ def player_stats():
         print(tabulate(display_df, headers="keys", tablefmt="pipe", showindex=False))
        
         # Add a legend for the stats
-        print("Legend:\nGP - Games Played \nMPG - Minutes Per Game \nPPG - Points Per Game \nAPG - Assists Per Game \nRPG - Rebounds Per Game \nSPG - Steals Per Game \nBPG - Blocks Per Game \nTOV - Turnovers \nFG% - Field Goal Percentage \nFT% - Free Throw Percentage \n3P% - Three Point Percentage \nTS% - True Shooting Percentage\nAV - Approximate Value")
+        print("Legend:\nGP - Games Played \nMPG - Minutes Per Game \nPPG - Points Per Game \nAPG - Assists Per Game \nRPG - Rebounds Per Game \nSPG - Steals Per Game \nBPG - Blocks Per Game \nTOV - Turnovers \nFG% - Field Goal Percentage \nFT% - Free Throw Percentage \n3P% - Three Point Percentage \nTS% - True Shooting Percentage\nAV - Approximate Value \nSL - Salary")
        
 # Run the program        
 if __name__ == "__main__":

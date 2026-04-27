@@ -22,6 +22,10 @@ Python 3.x
    ```
    pip install nba_api
    ```
+3. Install lxml Package
+   ```
+   pip install lxml
+   ```
 3. Run code in VS Code or terminal
    ```
    python NBA_Stats.py
