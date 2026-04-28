@@ -22,9 +22,9 @@ Python 3.x
    ```
    pip install nba_api
    ```
-3. Install lxml Package
+3. Install Sportsipy API
    ```
-   pip install lxml
+   pip install sportsipy
    ```
 3. Run code in VS Code or terminal
    ```
