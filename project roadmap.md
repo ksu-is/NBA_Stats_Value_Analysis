@@ -13,10 +13,10 @@
     -[x] Add Approximate Value (AV) to the DataFrame
     -[x] Add Option for Individual Seasons or whole Career
     -[] Add Player Salaries
-- [] Make regular updates and commits to code
-- [] Frequently update README.md and projectroadmap.md
+- []x Make regular updates and commits to code
+- [x] Frequently update README.md and projectroadmap.md
 ## Sprint 3
-- [] Continue developing and conducting tests on code
+- [x] Continue developing and conducting tests on code
 - [] Add Splash Screen to repo
 - [] Create PowerPoint and add to repo
-- [] Schedule Teams presentation
+- [x] Schedule Teams presentation
