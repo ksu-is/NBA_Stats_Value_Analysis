@@ -17,6 +17,6 @@
 - [x] Frequently update README.md and projectroadmap.md
 ## Sprint 3
 - [x] Continue developing and conducting tests on code
-- [] Add Splash Screen to repo
-- [] Create PowerPoint and add to repo
+- [x] Add Splash Screen to repo
+- [x] Create PowerPoint and add to repo
 - [x] Schedule Teams presentation

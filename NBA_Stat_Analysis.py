@@ -1,13 +1,13 @@
-import re
+
 import time
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import CommonPlayerInfo, playercareerstats
 from tabulate import tabulate
 
-# Import for nan
+import re
 import numpy as np
-# Import for edgecases regarding names
 import unicodedata
+
 # Imports required for the basketball reference ID generation
 from bs4 import BeautifulSoup, Comment
 from selenium import webdriver
@@ -42,6 +42,7 @@ def find_table_in_comments(soup, table_id):
         if table:
             return table
     return None
+
 # Gets Date of birth on basketball reference
 def find_bbr_dob(soup):
     birth_span = soup.find("span", {"id": "necro-birth"})
@@ -55,6 +56,25 @@ def get_nba_api_dob(player_id):
     # The NBA API returns '1992-12-18T00:00:00'
     raw_date = info['BIRTHDATE'].iloc[0] 
     return raw_date.split('T')[0]  # Clean it to '1992-12-18'
+
+# Function to generate the basketball reference ID based on the player's full name, which is necessary to construct the URL for fetching salary data from basketball reference
+def generate_basketball_reference_id(full_name):
+    name_parts = full_name.split()
+    if len(name_parts) < 2:
+        raise ValueError("Please enter a full name (first and last).")
+    
+    first_name = name_parts[0]
+    last_name = name_parts[-1]
+
+    cleaned_first_name = clean_name(first_name)
+    cleaned_last_name = clean_name(last_name)
+
+    # Create the basketball reference ID format
+    first_part = cleaned_last_name[:5].lower()
+    second_part = cleaned_first_name[:2].lower()
+
+    basketball_reference_id = f"{first_part}{second_part}"
+    return basketball_reference_id
 
 # Function to get the proper url by matching basketball reference DOB and NBA API DOB
 def get_correct_bbr_url(full_name, player_id):
@@ -79,24 +99,6 @@ def get_correct_bbr_url(full_name, player_id):
     
     return None # No match found
 
-# Function to generate the basketball reference ID based on the player's full name, which is necessary to construct the URL for fetching salary data from basketball reference
-def generate_basketball_reference_id(full_name):
-    name_parts = full_name.split()
-    if len(name_parts) < 2:
-        raise ValueError("Please enter a full name (first and last).")
-    
-    first_name = name_parts[0]
-    last_name = name_parts[-1]
-
-    cleaned_first_name = clean_name(first_name)
-    cleaned_last_name = clean_name(last_name)
-
-    # Create the basketball reference ID format
-    first_part = cleaned_last_name[:5].lower()
-    second_part = cleaned_first_name[:2].lower()
-
-    basketball_reference_id = f"{first_part}{second_part}"
-    return basketball_reference_id
 
 # Clean the salary value by removing non-numeric characters and handling special cases like Two-Way contracts and Minimum contracts, which have specific values assigned to them for the purpose of this analysis
 def clean_salary(value):
@@ -279,6 +281,7 @@ def player_stats():
         # Get salary for the player and map it to the career DataFrame
         salary_data = career_salary(full_name, player_id)
         career_df['SL'] = career_df['SEASON_ID'].map(salary_data)
+
         # Convert the salary column to a numeric format by removing any non-numeric characters and converting to float
         career_df['Salary_float'] = (career_df['SL'].astype(str).str.replace(r'[^\d]', '', regex=True)) 
         career_df['Salary_float'] = career_df['Salary_float'].replace('', None)
@@ -288,7 +291,9 @@ def player_stats():
         AV = (abs(credits) ** (3/4)) / 21
         career_df['AV'] = AV
         
-        #Calculate the average AV for the player's career and add it as a new column
+        #Calculate the average AV for the player's career and add it as a new column to track Career Effciency (Requires at least 3 season to calculate)
+        career_df['CE'] = career_df['AV'].rolling(2).mean()
+
         # Calculate VD ONLY where salary is greater than 0
         # This avoids the ZeroDivisionError and keeps missing data as NaN
         career_df['VD'] = np.nan
@@ -309,15 +314,15 @@ def player_stats():
                 career_df.loc[(career_df['SEASON_ID'] == season) & (career_df['TEAM_ABBREVIATION'] == 'TOT'), 'Team'] = '/'.join(teams_played)
 
         # Filter the DataFrame to include only the relevant columns ()
-        season_stats = career_df[['SEASON_ID','Team' ,'GP','MPG','PPG', 'APG', 'RPG', 'SPG', 'BPG', 'TOV','FG%','FT%','3P%','TS%', 'AV', 'SL', 'VD']].copy()
+        season_stats = career_df[['SEASON_ID','Team' ,'GP','MPG','PPG', 'APG', 'RPG', 'SPG', 'BPG', 'TOV','FG%','FT%','3P%','TS%', 'AV', 'CE', 'SL', 'VD']].copy()
        
         # Rename SEASON_ID column for clarity
         season_stats.rename(columns={'SEASON_ID': 'Season'}, inplace=True)
 
-        #Convert salary to millions for better visualization
+        #Convert salary from millions for better visualization
         career_df['Salary_M'] = career_df['Salary_float'] / 1e6
 
-        #Visualization of the stats using matplotlib
+        ### Visualization of the stats using matplotlib ###
         x = career_df['Salary_M']
         y = career_df['AV']
         for i, season in enumerate(career_df['SEASON_ID']):
@@ -337,13 +342,18 @@ def player_stats():
         plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black', alpha=0.3)
         # Scatter plot
         plt.scatter(x, y, c=range(len(career_df)), cmap='tab20', s=100)
-        plt.colorbar(label='Career Progression')
+        # plt.colorbar(label='Career Progression')
         # Adds Average AV to the Scatter plot
         avg_av = career_df['AV'].mean()
         plt.axhline(avg_av, color='red', linestyle=':', label=f'Avg AV ({avg_av:.1f})')
-        plt.legend()
-
-
+        # Regression Line
+        z = np.polyfit(x.dropna(), y.dropna(), 1) # degree 1 = linear
+        m, b = z  # slope and intercept
+        p = np.poly1d(z)
+        plt.plot(x, p(x), linestyle='--')
+        equation = f"y = {m:.2f}x + {b:.2f}"
+        plt.text(0.05, 0.95, equation, transform=plt.gca().transAxes, fontsize=10, verticalalignment='top'
+        )
 
         #heatmap of the stats 
         heatmap_df = career_df[['SEASON_ID', 'AV', 'Salary_float', 'VD']].copy()
@@ -355,7 +365,7 @@ def player_stats():
                 heatmap_df = (heatmap_df - heatmap_df.mean()) / heatmap_df.std()  # Standardize the data for better visualization in the heatmap
                 plt.figure(figsize=(6, 4))
                 # Heatmap Colors
-                sns.heatmap(heatmap_df, cmap='inferno',annot=True)
+                sns.heatmap(heatmap_df, cmap='magma',annot=True)
                 #H Heatmap Lables
                 plt.title(f'Contract Efficiency Heatmap - {full_name}')
                 plt.xlabel('Metric')
@@ -380,11 +390,10 @@ def player_stats():
 
 
         # Format the season column to be more readable
-    
         print("Career Stats for", full_name) 
         print(tabulate(display_df, headers="keys", tablefmt="pipe", showindex=False))
         # Add a legend for the stats
-        print("Legend:\nGP - Games Played \nMPG - Minutes Per Game \nPPG - Points Per Game \nAPG - Assists Per Game \nRPG - Rebounds Per Game \nSPG - Steals Per Game \nBPG - Blocks Per Game \nTOV - Turnovers \nFG% - Field Goal Percentage \nFT% - Free Throw Percentage \n3P% - Three Point Percentage \nTS% - True Shooting Percentage\nAV - Approximate Value \nSL - Salary \nVD - Value over Dollar (AV per million dollars of salary)")
+        print("Legend:\nGP - Games Played \nMPG - Minutes Per Game \nPPG - Points Per Game \nAPG - Assists Per Game \nRPG - Rebounds Per Game \nSPG - Steals Per Game \nBPG - Blocks Per Game \nTOV - Turnovers \nFG% - Field Goal Percentage \nFT% - Free Throw Percentage \n3P% - Three Point Percentage \nTS% - True Shooting Percentage\nAV - Approximate Value \nCE - Career Efficiency \nSL - Salary \nVD - Value over Dollar (AV per million dollars of salary)")
        
 # Run the program        
 if __name__ == "__main__":

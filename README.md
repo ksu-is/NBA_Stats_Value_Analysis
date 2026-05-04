@@ -1,4 +1,4 @@
-# NBA_Stats_Value_Analysis
+# NBA_Stats_Analysis
 Developed by Salman Khalid, Forked from NBA_Stats
 
 
@@ -17,18 +17,26 @@ Python 3.x
    ```
    git clone https://github.com/ksu-is/NBA_Stats.git
    cd NBA_Stats
-   ```  
-2. Install NBA API
+     
+2. Install Data Processing Libraries
+   ```
+   pip install numpy pandas
+   ```
+3. Install NBA API
    ```
    pip install nba_api
    ```
-3. Install Sportsipy API
+4. Install Scraping and Web Drivers
    ```
-   pip install sportsipy
+   pip install bs4 selenium requests webdriver-manager
+   ```
+5. Install Visualization and Formatting 
+   ```
+   pip install matplotlib seaborn tabulate
    ```
 3. Run code in VS Code or terminal
    ```
-   python NBA_Stats.py
+   python NBA_Stat_Analysis.py
    ```
 ## Acknowledgments
 Provision of the nba_api library is credited to [swar/nba_api](https://github.com/swar/nba_api). Additionally, this code was partly developed with the help of Visual Studio Code's IntelliSense feature.
