@@ -1,12 +1,8 @@
-# NBA_Stats_Analysis
+# NBA_Stats_Analysis 🏀
 Developed by Salman Khalid, Forked from NBA_Stats
 
 
-
-# NBA Statistics Presenter 🏀
-
- This program is designed to gather and present up-to-date statistics from the NBA. The casual fans, down to the most diehard NBA fans, can use this program to learn more about basketball or their favorite players. Users can enter a player’s name and be presented with the associated statistics for each season. Beyond the typical stats of points, rebounds, and assists, users can observe additional statistics such as minutes per game, field goal percentage, and true shooting percentage.
-
+This program is designed to collect and display detailed NBA player statistics using real-time data from the NBA API and salary information from Basketball Reference. From casual basketball viewers to dedicated NBA fans, users can explore player performance on a deeper level by searching for any NBA player and viewing season-by-season statistics. In addition to traditional stats like points, rebounds, and assists, the program also highlights advanced metrics such as true shooting percentage, minutes per game, and a custom efficiency metric called Value per Dollar (VD), which measures player performance relative to salary.
 ## Prerequisites
 ```
 Python 3.x
