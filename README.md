@@ -1,4 +1,4 @@
-# NBA_Stats_Analysis 🏀
+# NBA_Stat_Analysis 🏀
 Developed by Salman Khalid, Forked from NBA_Stats
 
 
